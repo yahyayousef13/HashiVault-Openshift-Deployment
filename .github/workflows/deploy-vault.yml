@@ -1,4 +1,4 @@
-name: Deploy HashiCorp Vault to OpenShift
+name: Deploy HashiCorp Vault to OpenShift (CI/CD Pipeline)
 
 on:
   push:
@@ -9,16 +9,31 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest  # Use an Ubuntu runner for the GitHub Actions workflow
 
+    environment:
+      DOCKER_REGISTRY: "trial4w4crx.jfrog.io"
+      DOCKER_REPO: "vault-repo"
+      IMAGE_NAME: "vault-server"
+      BASE_VERSION: "1.0"
+      IMAGE_TAG: "${{ github.run_number }}"  # Dynamically using GitHub's run number as versioning
+      K8S_NAMESPACE: "vault-deployment"
+      K8S_DEPLOYMENT_NAME: "vault"
+      JFROG_CREDENTIALS_ID: ${{ secrets.JFROG_CREDENTIALS_ID }}  # GitHub secrets for credentials
+      GITHUB_CREDENTIALS_ID: ${{ secrets.GITHUB_CREDENTIALS_ID }}  # GitHub secrets for credentials
+
     steps:
     # Step 1: Checkout the code from the repository
     - name: Checkout Repository
       uses: actions/checkout@v2
 
-    # Step 2: Set up Docker Buildx (for multi-platform builds)
+    # Step 2: Verify Docker access
+    - name: Verify Docker access
+      run: docker --version
+
+    # Step 3: Set up Docker Buildx (for multi-platform builds)
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    # Step 3: Log in to JFrog Artifactory
+    # Step 4: Log in to JFrog Artifactory
     - name: Log in to JFrog Artifactory
       uses: docker/login-action@v2
       with:
@@ -26,41 +41,55 @@ jobs:
         username: ${{ secrets.JFROG_USERNAME }}  # Get JFrog credentials from GitHub Secrets
         password: ${{ secrets.JFROG_PASSWORD }}
 
-    # Step 4: Build the Docker image for Vault
+    # Step 5: Build Docker Image
     - name: Build Docker Image
       run: |
-        docker build -t trial4w4crx.jfrog.io/vault-repo/vault-server:1.0 .
+        docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} -f docker/Dockerfile .
 
-    # Step 5: Push Docker Image to JFrog Artifactory
+    # Step 6: Push Docker Image to JFrog Artifactory
     - name: Push Docker Image to JFrog Artifactory
       run: |
-        docker push trial4w4crx.jfrog.io/vault-repo/vault-server:1.0
+        docker push ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-    # Step 6: Set up Helm
+    # Step 7: Pull and Verify Docker Image from Artifactory
+    - name: Pull and Verify Docker Image from Artifactory
+      run: |
+        docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+    # Step 8: Set up Helm
     - name: Set up Helm
       uses: deliverybot/helm-action@v2
 
-    # Step 7: Log in to OpenShift
+    # Step 9: Log in to OpenShift
     - name: Log in to OpenShift
       run: |
-        echo ${{ secrets.OPENSHIFT_TOKEN }} | oc login --token=$OPENSHIFT_TOKEN --server=$OPENSHIFT_SERVER
+        echo ${{ secrets.OPENSHIFT_TOKEN }} | oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
 
-    # Step 8: Set up OpenShift Image Pull Secret for JFrog
+    # Step 10: Set up OpenShift Image Pull Secret for JFrog
     - name: Set up Image Pull Secret for JFrog Artifactory
       run: |
         oc create secret docker-registry jfrog-registry-secret \
           --docker-username=${{ secrets.JFROG_USERNAME }} \
           --docker-password=${{ secrets.JFROG_PASSWORD }} \
-          --docker-server=trial4w4crx.jfrog.io
+          --docker-server=${{ secrets.DOCKER_REGISTRY }}
         oc secrets link default jfrog-registry-secret --for=pull
 
-    # Step 9: Install and Upgrade Vault using Helm in OpenShift
+    # Step 11: Install and Upgrade Vault using Helm in OpenShift
     - name: Install/Upgrade Vault with Helm
       run: |
-        helm upgrade --install vault ./helm --set image.repository=trial4w4crx.jfrog.io/vault-repo/vault-server --set image.tag=1.0 --namespace vault-deployment --create-namespace
+        helm upgrade --install vault ./helm \
+          --namespace ${{ env.K8S_NAMESPACE }} \
+          --set image.repository=${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }} \
+          --set image.tag=${{ env.IMAGE_TAG }} \
+          --set server.ha.enabled=true \
+          --create-namespace
 
-    # Step 10: Verify Vault Deployment
-    - name: Verify Vault Deployment
+    # Step 12: Health Check
+    - name: Health Check
       run: |
-        kubectl get pods -n vault-deployment
-        kubectl get svc -n vault-deployment
+        kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }} --namespace=${{ env.K8S_NAMESPACE }}
+
+    # Step 13: Verify Helm Chart Deployment
+    - name: Verify Helm Chart Deployment
+      run: |
+        helm status vault --namespace ${{ env.K8S_NAMESPACE }}
