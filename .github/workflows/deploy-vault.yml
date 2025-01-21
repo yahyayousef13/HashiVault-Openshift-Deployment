@@ -1,0 +1,66 @@
+name: Deploy HashiCorp Vault to OpenShift
+
+on:
+  push:
+    branches:
+      - main  # Trigger deployment on push to the main branch
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest  # Use an Ubuntu runner for the GitHub Actions workflow
+
+    steps:
+    # Step 1: Checkout the code from the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Docker Buildx (for multi-platform builds)
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # Step 3: Log in to JFrog Artifactory
+    - name: Log in to JFrog Artifactory
+      uses: docker/login-action@v2
+      with:
+        registry: trial4w4crx.jfrog.io
+        username: ${{ secrets.JFROG_USERNAME }}  # Get JFrog credentials from GitHub Secrets
+        password: ${{ secrets.JFROG_PASSWORD }}
+
+    # Step 4: Build the Docker image for Vault
+    - name: Build Docker Image
+      run: |
+        docker build -t trial4w4crx.jfrog.io/vault-repo/vault-server:1.0 .
+
+    # Step 5: Push Docker Image to JFrog Artifactory
+    - name: Push Docker Image to JFrog Artifactory
+      run: |
+        docker push trial4w4crx.jfrog.io/vault-repo/vault-server:1.0
+
+    # Step 6: Set up Helm
+    - name: Set up Helm
+      uses: deliverybot/helm-action@v2
+
+    # Step 7: Log in to OpenShift
+    - name: Log in to OpenShift
+      run: |
+        echo ${{ secrets.OPENSHIFT_TOKEN }} | oc login --token=$OPENSHIFT_TOKEN --server=$OPENSHIFT_SERVER
+
+    # Step 8: Set up OpenShift Image Pull Secret for JFrog
+    - name: Set up Image Pull Secret for JFrog Artifactory
+      run: |
+        oc create secret docker-registry jfrog-registry-secret \
+          --docker-username=${{ secrets.JFROG_USERNAME }} \
+          --docker-password=${{ secrets.JFROG_PASSWORD }} \
+          --docker-server=trial4w4crx.jfrog.io
+        oc secrets link default jfrog-registry-secret --for=pull
+
+    # Step 9: Install and Upgrade Vault using Helm in OpenShift
+    - name: Install/Upgrade Vault with Helm
+      run: |
+        helm upgrade --install vault ./helm --set image.repository=trial4w4crx.jfrog.io/vault-repo/vault-server --set image.tag=1.0 --namespace vault-deployment --create-namespace
+
+    # Step 10: Verify Vault Deployment
+    - name: Verify Vault Deployment
+      run: |
+        kubectl get pods -n vault-deployment
+        kubectl get svc -n vault-deployment
