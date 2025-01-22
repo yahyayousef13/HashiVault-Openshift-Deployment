@@ -89,7 +89,7 @@ jobs:
       run: |
         kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }} --namespace=${{ env.K8S_NAMESPACE }}
 
-    # Step 13: Verify Helm Chart Deployment
+    # Step 13: Verify Helm Chart Deployment1
     - name: Verify Helm Chart Deployment
       run: |
         helm status vault --namespace ${{ env.K8S_NAMESPACE }}
