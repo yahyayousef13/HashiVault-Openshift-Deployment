@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest  # Use an Ubuntu runner for the GitHub Actions workflow
 
     env:
-      DOCKER_REGISTRY: "trial4w4crx.jfrog.io"
+      DOCKER_REGISTRY: "trialb9kyjn.jfrog.io/"
       DOCKER_REPO: "vault-repo"
       IMAGE_NAME: "vault-server"
       BASE_VERSION: "1.0"
@@ -37,7 +37,7 @@ jobs:
     - name: Log in to JFrog Artifactory
       uses: docker/login-action@v2
       with:
-        registry: trial4w4crx.jfrog.io
+        registry: trialb9kyjn.jfrog.io
         username: ${{ secrets.JFROG_USERNAME }}  # Get JFrog credentials from GitHub Secrets
         password: ${{ secrets.JFROG_PASSWORD }}
 
