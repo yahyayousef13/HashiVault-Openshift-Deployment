@@ -57,8 +57,14 @@ jobs:
         docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
     # Step 8: Set up Helm
-    - name: Set up Helm
-      uses: deliverybot/helm-action@v2
+    #- name: Set up Helm
+    #  uses: deliverybot/helm-action@v2
+    
+    # Step 8: Install Helm
+    - name: Install Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
 
     # Step 9: Log in to OpenShift
     - name: Log in to OpenShift
@@ -89,7 +95,7 @@ jobs:
       run: |
         kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }} --namespace=${{ env.K8S_NAMESPACE }}
 
-    # Step 13: Verify Helm Chart Deployment1
+    # Step 13: Verify Helm Chart Deployment
     - name: Verify Helm Chart Deployment
       run: |
         helm status vault --namespace ${{ env.K8S_NAMESPACE }}
