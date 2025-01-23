@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest  # Use an Ubuntu runner for the GitHub Actions workflow
 
     env:
-      DOCKER_REGISTRY: "trialb9kyjn.jfrog.io/"
+      DOCKER_REGISTRY: "trialb9kyjn.jfrog.io"
       DOCKER_REPO: "vault-repo"
       IMAGE_NAME: "vault-server"
       BASE_VERSION: "1.0"
