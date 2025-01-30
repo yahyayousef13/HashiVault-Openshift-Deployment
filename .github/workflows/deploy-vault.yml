@@ -132,3 +132,6 @@ jobs:
       run: |
         echo "Verifying Helm chart deployment..."
         helm status vault --namespace ${{ env.K8S_NAMESPACE }}
+
+
+        echo "Workflow done"
