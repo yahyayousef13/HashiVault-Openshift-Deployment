@@ -135,3 +135,15 @@ jobs:
 
 
         echo "Workflow done"
+
+    - name: Triggering AWS workflow
+      run:
+        curl -X post -h "Authorization: Bearer ${{ secret.GITHUB_TOKEN }}" \
+        -H "Accept: application\vnd.github.v3+json" \
+        https://api.github.com/repo/${{ github.repository }}/actions/workflows/ci-cd-aws.yml/dispatches \
+        -d '{"ref":"main"}'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  entrypoint: '/entrypoint.sh'
