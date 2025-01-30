@@ -143,7 +143,7 @@ jobs:
         https://api.github.com/repo/${{ github.repository }}/actions/workflows/ci-cd-aws.yml/dispatches \
         -d '{"ref":"main"}'
 
-runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  entrypoint: '/entrypoint.sh'
+      runs:
+        using: 'docker'
+        image: 'Dockerfile'
+        entrypoint: '/entrypoint.sh'
