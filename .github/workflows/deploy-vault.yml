@@ -93,6 +93,7 @@ jobs:
           -u ${{ secrets.OPENSHIFT_USERNAME }} \
           -p ${{ secrets.OPENSHIFT_PASSWORD }} --insecure-skip-tls-verify=true
 
+
     # Step 11: Prepare Namespace
     - name: Create Namespace if Not Exists
       run: |
