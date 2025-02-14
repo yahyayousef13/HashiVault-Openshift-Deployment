@@ -85,6 +85,11 @@ jobs:
         sudo mv oc /usr/local/bin/
         oc version
 
+
+        # Test DNS Resolution
+    - name: Test DNS Resolution for OpenShift API
+      run: |
+        nslookup api.microshift-demo.example-yt.com
     # Step 10: Log in to OpenShift using Username and Password
     - name: Log in to OpenShift
       run: |
