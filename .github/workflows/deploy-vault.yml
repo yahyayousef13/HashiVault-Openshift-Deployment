@@ -74,6 +74,17 @@ jobs:
       run: |
         echo "Installing Helm..."
         curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+    # Step 9: Install OpenShift CLI (oc)
+    - name: Install OpenShift CLI
+      run: |
+        echo "Installing OpenShift CLI..."
+        curl -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz -o oc.tar.gz
+        tar -xvf oc.tar.gz
+        chmod +x oc
+        sudo mv oc /usr/local/bin/
+        oc version
+
     # Step 10: Log in to OpenShift using Username and Password
     - name: Log in to OpenShift
       run: |
